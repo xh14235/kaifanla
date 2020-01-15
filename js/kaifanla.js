@@ -1,0 +1,105 @@
+/**
+ * Created by bjwsl-001 on 2016-12-30.
+ */
+var app=angular.module('myApp',['ng','ngRoute']);
+app.config(function($routeProvider){
+  $routeProvider.when('/myStart',{
+    templateUrl:'tpl/start.html',
+    controller:'startC'
+  })
+    .when('/myMain',{
+      templateUrl:'tpl/main.html',
+      controller:'mainC'
+    })
+    .when('/myDetail',{
+      templateUrl:'tpl/detail.html',
+      controller:'detailC'
+    })
+    .when('/myDetail/:id',{
+      templateUrl:'tpl/detail.html',
+      controller:'detailC'
+    })
+    .when('/myOrder',{
+      templateUrl:'tpl/order.html',
+      controller:'orderC'
+    })
+    .when('/myOrder/:id',{
+      templateUrl:'tpl/order.html',
+      controller:'orderC'
+    })
+    .when('/myMyOrder',{
+      templateUrl:'tpl/myOrder.html',
+      controller:'myOrderC'
+    })
+    .otherwise({
+      redirectTo:'/myStart'
+    })
+});
+
+app.controller('myCtrl',['$scope','$location',function($scope,$location){
+  $scope.jump=function(arg){
+    $location.path(arg);
+  }
+}]);
+app.controller('startC',['$scope',function($scope){
+
+}]);
+app.controller('mainC',['$scope','$http',function($scope,$http){
+  $scope.hasMore=true;
+  $http.get('data/dish_getbypage.php?start=0')
+  .success(function(data){
+    //console.log(data);
+    $scope.dishList=data;
+  });
+  $scope.loadMore=function(){
+    $http.get('data/dish_getbypage.php?start='+$scope.dishList.length)
+      .success(function(data){
+        $scope.dishList=$scope.dishList.concat(data);
+        if(data.length<5){
+          $scope.hasMore=false;
+        }
+      })
+  };
+  $scope.$watch('kw',function(){
+    if($scope.kw){
+      $http.get('data/dish_getbykw.php?kw='+$scope.kw)
+      .success(function(data){
+          $scope.dishList=data;
+        })
+    }
+  })
+}]);
+app.controller('detailC',['$scope','$routeParams','$http',function($scope,$routeParams,$http){
+  var did=$routeParams.id;
+  $http.get('data/dish_getbyid.php?id='+did)
+  .success(function(data){
+      console.log(data);
+      $scope.dish=data[0];
+    })
+}]);
+app.controller('orderC',['$scope','$routeParams','$http',function($scope,$routeParams,$http){
+  var did=$routeParams.id;
+  $scope.order={'did':did};
+  $scope.submitOrder=function(){
+    //console.log($scope.order);
+    var args=jQuery.param($scope.order);
+    //console.log(args);
+    $http.get('data/order_add.php?'+args)
+    .success(function(data){
+        console.log(data);
+        if(data[0].msg='succ'){
+          sessionStorage.setItem('phone',$scope.order.phone);
+          $scope.succMsg="订单成功，订单编号为"+data[0].oid;
+        }else{
+          $scope.errMsg="订单失败！";
+        }
+      })
+  }
+}]);
+app.controller('myOrderC',['$scope','$http',function($scope,$http){
+  $http.get('data/order_getbyphone.php?phone='+sessionStorage.getItem('phone'))
+  .success(function(data){
+      console.log(data);
+      $scope.orderList=data;
+    });
+}]);
